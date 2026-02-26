@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: scale-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scale-app
+  namespace: scale-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scale-app
+  template:
+    metadata:
+      labels:
+        app: scale-app
+    spec:
+      containers:
+      - name: scale-app
+        image: nginx:alpine

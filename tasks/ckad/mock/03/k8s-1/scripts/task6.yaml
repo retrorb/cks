@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: broken-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broken-deploy
+  namespace: broken-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: broken-deploy
+  template:
+    metadata:
+      labels:
+        app: broken-deploy
+    spec:
+      containers:
+      - name: broken-deploy
+        image: nginx:this-tag-does-not-exist

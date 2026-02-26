@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: update-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: update-app
+  namespace: update-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: update-app
+  template:
+    metadata:
+      labels:
+        app: update-app
+    spec:
+      containers:
+      - name: update-app
+        image: nginx:1.24

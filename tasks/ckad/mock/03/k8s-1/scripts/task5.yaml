@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: strategy-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: strategy-app
+  namespace: strategy-ns
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: strategy-app
+  template:
+    metadata:
+      labels:
+        app: strategy-app
+    spec:
+      containers:
+      - name: strategy-app
+        image: nginx:alpine

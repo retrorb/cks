@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rollback-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rollback-app
+  namespace: rollback-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rollback-app
+  template:
+    metadata:
+      labels:
+        app: rollback-app
+    spec:
+      containers:
+      - name: rollback-app
+        image: nginx:alpine

@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: probe-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: probe-app
+  namespace: probe-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: probe-app
+  template:
+    metadata:
+      labels:
+        app: probe-app
+    spec:
+      containers:
+      - name: probe-app
+        image: viktoruj/ping_pong:alpine
+        ports:
+        - containerPort: 8080

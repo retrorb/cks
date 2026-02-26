@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: np-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: np-app
+  namespace: np-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: np-app
+  template:
+    metadata:
+      labels:
+        app: np-app
+    spec:
+      containers:
+      - name: np-app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80

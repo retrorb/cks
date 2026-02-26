@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: startup-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: startup-app
+  namespace: startup-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: startup-app
+  template:
+    metadata:
+      labels:
+        app: startup-app
+    spec:
+      containers:
+      - name: startup-app
+        image: viktoruj/ping_pong:alpine
+        ports:
+        - containerPort: 8080
