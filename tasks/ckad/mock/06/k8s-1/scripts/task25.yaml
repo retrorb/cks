@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: e2e-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: full-app
+  namespace: e2e-ns
+  labels:
+    app: full-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: full-app
+  template:
+    metadata:
+      labels:
+        app: full-app
+    spec:
+      containers:
+      - name: full-app
+        image: viktoruj/ping_pong:alpine
+        ports:
+        - containerPort: 8080

@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: canary2-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stable-app2
+  namespace: canary2-ns
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: webapp2
+      track: stable
+  template:
+    metadata:
+      labels:
+        app: webapp2
+        track: stable
+    spec:
+      containers:
+      - name: stable-app2
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stable-svc2
+  namespace: canary2-ns
+spec:
+  selector:
+    app: webapp2
+    track: stable
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stable-ingress2
+  namespace: canary2-ns
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: app2.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: stable-svc2
+            port:
+              number: 80

@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: deny-all-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: target-pod
+  namespace: deny-all-ns
+  labels:
+    app: target
+spec:
+  containers:
+  - name: target
+    image: viktoruj/ping_pong:alpine
+    ports:
+    - containerPort: 8080
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ext-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tester-pod
+  namespace: ext-ns
+  labels:
+    app: tester
+spec:
+  containers:
+  - name: tester
+    image: viktoruj/ping_pong:alpine

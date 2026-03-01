@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: multi-src-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: api-pod17
+  namespace: multi-src-ns
+  labels:
+    role: api
+spec:
+  containers:
+  - name: api
+    image: viktoruj/ping_pong:alpine
+    ports:
+    - containerPort: 8080
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frontend-pod17
+  namespace: multi-src-ns
+  labels:
+    role: frontend
+spec:
+  containers:
+  - name: frontend
+    image: viktoruj/ping_pong:alpine
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: monitor-pod17
+  namespace: multi-src-ns
+  labels:
+    role: monitor
+spec:
+  containers:
+  - name: monitor
+    image: viktoruj/ping_pong:alpine
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: blocked-pod17
+  namespace: multi-src-ns
+  labels:
+    role: blocked
+spec:
+  containers:
+  - name: blocked
+    image: viktoruj/ping_pong:alpine

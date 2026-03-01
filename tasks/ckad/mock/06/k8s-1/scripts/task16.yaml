@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: secure-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault-app
+  namespace: secure-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault
+  template:
+    metadata:
+      labels:
+        app: vault
+    spec:
+      containers:
+      - name: vault
+        image: viktoruj/ping_pong:alpine
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: admin-ns
+  labels:
+    team: admin
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: admin-pod
+  namespace: admin-ns
+  labels:
+    role: operator
+spec:
+  containers:
+  - name: admin-pod
+    image: viktoruj/ping_pong:alpine
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: other16-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: other-pod
+  namespace: other16-ns
+  labels:
+    role: other
+spec:
+  containers:
+  - name: other-pod
+    image: viktoruj/ping_pong:alpine

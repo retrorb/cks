@@ -20,8 +20,8 @@ locals {
   k8_version           = "1.30.0"
   node_type            = "spot"
   runtime              = "containerd" # docker  , cri-o  , containerd ( need test it )
-  instance_type        = "t4g.medium" #  t3.medium  - x86     t4g.medium - arm
-  instance_type_worker = "t4g.small"
+  instance_type        = "t3.medium" #  t3.medium  - x86     t4g.medium - arm
+  instance_type_worker = "t3.small"
   key_name             = ""
   ssh_password_enable  = "true" # false |  true
   access_cidrs         = ["0.0.0.0/0"] #  "93.177.191.10/32"  | "0.0.0.0/0"

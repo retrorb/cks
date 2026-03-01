@@ -1,6 +1,6 @@
 locals {
-  questions_list="https://github.com/ViktorUJ/cks/blob/master/tasks/ckad/mock/02/README.md"
-  solutions_scripts="https://github.com/ViktorUJ/cks/tree/master/tasks/ckad/mock/02/worker/files/solutions"
+  questions_list="https://github.com/ViktorUJ/cks/blob/master/tasks/ckad/mock/06/README.md"
+  solutions_scripts="https://github.com/ViktorUJ/cks/tree/master/tasks/ckad/mock/06/worker/files/solutions"
   solutions_video=""
   region = "eu-north-1"
   vpc_default_cidr =  "10.2.0.0/16"
@@ -19,12 +19,12 @@ locals {
   }
   k8_version           = "1.30.0"
   node_type            = "spot"
-  runtime              = "containerd" # docker  , cri-o  , containerd ( need test it )
-  instance_type        = "t3.medium" #  t3.medium  - x86     t4g.medium - arm
+  runtime              = "containerd"
+  instance_type        = "t3.medium"
   instance_type_worker = "t3.small"
   key_name             = ""
-  ssh_password_enable  = "true" # false |  true
-  access_cidrs         = ["0.0.0.0/0"] #  "93.177.191.10/32"  | "0.0.0.0/0"
+  ssh_password_enable  = "true"
+  access_cidrs         = ["0.0.0.0/0"]
   ubuntu_version       = "20.04"
   ami_id               = ""
   root_volume = {

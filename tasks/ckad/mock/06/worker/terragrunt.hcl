@@ -27,11 +27,6 @@ dependency "vpc" {
 
 dependency "cluster1" {
   config_path = "../k8s-1"
-  mock_outputs_allowed_terraform_commands = ["destroy"]
-  mock_outputs = {
-    hosts      = []
-    k8s_config = "s3://mock/mock"
-  }
 }
 
 inputs = {
@@ -63,8 +58,8 @@ inputs = {
       kubectl_version = local.vars.locals.k8_version
     }
     exam_time_minutes = "120"
-    test_url          = "https://raw.githubusercontent.com/ViktorUJ/cks/master/tasks/ckad/mock/01/worker/files/tests.bats"
-    task_script_url   = "https://raw.githubusercontent.com/ViktorUJ/cks/master/tasks/ckad/mock/01/worker/files/worker.sh"
+    test_url          = "https://raw.githubusercontent.com/retrorb/cks/master/tasks/ckad/mock/06/worker/files/tests.bats"
+    task_script_url   = "https://raw.githubusercontent.com/retrorb/cks/master/tasks/ckad/mock/06/worker/files/worker.sh"
     ssh = {
       private_key = dependency.ssh-keys.outputs.private_key
       pub_key     = dependency.ssh-keys.outputs.pub_key

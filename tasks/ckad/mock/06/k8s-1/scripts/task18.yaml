@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: client-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client-pod
+  namespace: client-ns
+  labels:
+    role: client
+spec:
+  containers:
+  - name: client
+    image: viktoruj/ping_pong:alpine
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: backend-pod
+  namespace: client-ns
+  labels:
+    role: backend
+spec:
+  containers:
+  - name: backend
+    image: viktoruj/ping_pong:alpine
+    ports:
+    - containerPort: 8080
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: external-pod
+  namespace: client-ns
+  labels:
+    role: external
+spec:
+  containers:
+  - name: external
+    image: viktoruj/ping_pong:alpine
+    ports:
+    - containerPort: 8080

@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bg2-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: v1-deploy
+  namespace: bg2-ns
+  labels:
+    app: bgapp
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bgapp
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: bgapp
+        version: v1
+    spec:
+      containers:
+      - name: v1-app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: v1-svc
+  namespace: bg2-ns
+spec:
+  selector:
+    version: v1
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bg-ingress
+  namespace: bg2-ns
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: bg.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: v1-svc
+            port:
+              number: 80

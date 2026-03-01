@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingfix-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-fix
+  namespace: ingfix-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-fix
+  template:
+    metadata:
+      labels:
+        app: web-fix
+    spec:
+      containers:
+      - name: web-fix
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-fix-svc
+  namespace: ingfix-ns
+spec:
+  selector:
+    app: web-fix
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-fix-ingress
+  namespace: ingfix-ns
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: webfix.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web-fix-svc
+            port:
+              number: 80

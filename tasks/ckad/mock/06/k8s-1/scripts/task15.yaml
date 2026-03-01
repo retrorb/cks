@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: egress-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker-egress
+  namespace: egress-ns
+  labels:
+    app: worker
+spec:
+  containers:
+  - name: worker
+    image: viktoruj/ping_pong:alpine
