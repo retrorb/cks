@@ -1,0 +1,535 @@
+# ============================================================
+# Task 3: crash-app in crash-ns — command /bin/wrong causes CrashLoopBackOff
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: crash-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: crash-app
+  namespace: crash-ns
+spec:
+  containers:
+  - name: crash-app
+    image: nginx:alpine
+    command: ["/bin/wrong"]
+# ============================================================
+# Task 4: bad-image-app in image-ns — broken image
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: image-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bad-image-app
+  namespace: image-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bad-image-app
+  template:
+    metadata:
+      labels:
+        app: bad-image-app
+    spec:
+      containers:
+      - name: bad-image-app
+        image: nginx:doesnotexist999
+        ports:
+        - containerPort: 80
+# ============================================================
+# Task 5: oom-app in resource-ns — memory limit too low
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: resource-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oom-app
+  namespace: resource-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oom-app
+  template:
+    metadata:
+      labels:
+        app: oom-app
+    spec:
+      containers:
+      - name: oom-app
+        image: nginx:alpine
+        resources:
+          limits:
+            memory: "1Mi"
+          requests:
+            memory: "1Mi"
+# ============================================================
+# Task 6: stuck-pvc in pvc-ns — missing StorageClass
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pvc-ns
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: stuck-pvc
+  namespace: pvc-ns
+spec:
+  storageClassName: missing-sc
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+# ============================================================
+# Task 7: monitor-ns — pods for kubectl top
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitor-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: monitor-pod-1
+  namespace: monitor-ns
+  labels:
+    app: monitor
+spec:
+  containers:
+  - name: monitor
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: monitor-pod-2
+  namespace: monitor-ns
+  labels:
+    app: monitor
+spec:
+  containers:
+  - name: monitor
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: monitor-pod-3
+  namespace: monitor-ns
+  labels:
+    app: monitor
+spec:
+  containers:
+  - name: monitor
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+# ============================================================
+# Task 9: log-pod in log-ns — writes logs in a loop
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: log-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: log-pod
+  namespace: log-ns
+spec:
+  containers:
+  - name: log-pod
+    image: busybox
+    command: ["sh", "-c", "while true; do echo 'log-entry: application is running'; sleep 5; done"]
+# ============================================================
+# Task 10: multi-pod in multi-ns — two containers
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: multi-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multi-pod
+  namespace: multi-ns
+spec:
+  containers:
+  - name: main
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+  - name: sidecar
+    image: busybox
+    command: ["sh", "-c", "while true; do echo 'sidecar-log: heartbeat'; sleep 3; done"]
+# ============================================================
+# Task 11: restart-pod in restart-ns — crashes after few seconds
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: restart-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: restart-pod
+  namespace: restart-ns
+spec:
+  containers:
+  - name: restart-pod
+    image: busybox
+    command: ["sh", "-c", "echo 'starting up...'; sleep 5; echo 'about to crash'; exit 1"]
+# ============================================================
+# Task 12: wrong-port-svc in svc-ns — targetPort 9999 instead of 8080
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: svc-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: real-svc-pod
+  namespace: svc-ns
+  labels:
+    app: real-svc
+spec:
+  containers:
+  - name: real-svc-pod
+    image: viktoruj/ping_pong:alpine
+    ports:
+    - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wrong-port-svc
+  namespace: svc-ns
+spec:
+  selector:
+    app: real-svc
+  ports:
+  - port: 80
+    targetPort: 9999
+# ============================================================
+# Task 13: no-ep-svc in ep-ns — selector app=wrong-app
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ep-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: real-app
+  namespace: ep-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: real-app
+  template:
+    metadata:
+      labels:
+        app: real-app
+    spec:
+      containers:
+      - name: real-app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: no-ep-svc
+  namespace: ep-ns
+spec:
+  selector:
+    app: wrong-app
+  ports:
+  - port: 80
+    targetPort: 80
+# ============================================================
+# Task 14: broken-ingress in ingress-fix — port 9090 instead of 80
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-fix
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fix-backend
+  namespace: ingress-fix
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fix-backend
+  template:
+    metadata:
+      labels:
+        app: fix-backend
+    spec:
+      containers:
+      - name: fix-backend
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fix-svc
+  namespace: ingress-fix
+spec:
+  selector:
+    app: fix-backend
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: broken-ingress
+  namespace: ingress-fix
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: fix.k8s.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: fix-svc
+            port:
+              number: 9090
+# ============================================================
+# Task 15: dns-block — NetworkPolicy blocks all egress including DNS
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dns-block
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: no-dns-pod
+  namespace: dns-block
+  labels:
+    app: no-dns-pod
+spec:
+  containers:
+  - name: no-dns-pod
+    image: busybox
+    command: ["sleep", "3600"]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: block-egress
+  namespace: dns-block
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress: []
+# ============================================================
+# Task 17: config-ns — ConfigMap with wrong DB_HOST value
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: config-ns
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: config-ns
+data:
+  DB_HOST: "wrong-host"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: env-pod
+  namespace: config-ns
+spec:
+  containers:
+  - name: env-pod
+    image: nginx:alpine
+    env:
+    - name: DB_HOST
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: DB_HOST
+# ============================================================
+# Task 18: secret-ns — Secret has wrong key name
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: secret-ns
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secret
+  namespace: secret-ns
+type: Opaque
+data:
+  wrong-key: d3JvbmctdmFsdWU=
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secret-pod
+  namespace: secret-ns
+spec:
+  containers:
+  - name: secret-pod
+    image: nginx:alpine
+    env:
+    - name: DB_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: app-secret
+          key: db-password
+# ============================================================
+# Task 19: affinity-ns — pod with nodeSelector that matches no nodes
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: affinity-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: stuck-pod
+  namespace: affinity-ns
+spec:
+  nodeSelector:
+    disk: ssd
+  containers:
+  - name: stuck-pod
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+# ============================================================
+# Task 20: final-ns — service with wrong selector + deny-all NetworkPolicy
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: final-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: final-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-svc
+  namespace: final-ns
+spec:
+  selector:
+    app: wrong
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: block-all
+  namespace: final-ns
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+  - Ingress
+  ingress: []
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client-pod
+  namespace: final-ns
+  labels:
+    app: client
+spec:
+  containers:
+  - name: curl
+    image: curlimages/curl:latest
+    command: ["sleep", "3600"]

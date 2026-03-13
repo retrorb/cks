@@ -1,0 +1,181 @@
+# ============================================================
+# Task 1: RBAC — rbac-ns namespace + reader-sa SA
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rbac-ns
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: reader-sa
+  namespace: rbac-ns
+# ============================================================
+# Task 2: RBAC — monitoring namespace + node-monitor-sa SA
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: node-monitor-sa
+  namespace: monitoring
+# ============================================================
+# Task 3: Fix RBAC — fix-rbac namespace, fix-sa SA, broken-rb RoleBinding with wrong SA
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fix-rbac
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fix-sa
+  namespace: fix-rbac
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wrong-sa
+  namespace: fix-rbac
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fix-role
+  namespace: fix-rbac
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: broken-rb
+  namespace: fix-rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: fix-role
+subjects:
+- kind: ServiceAccount
+  name: wrong-sa
+  namespace: fix-rbac
+# ============================================================
+# Task 4: check-ns namespace
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: check-ns
+# ============================================================
+# Task 5: deploy-rbac namespace + deploy-sa SA
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: deploy-rbac
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deploy-sa
+  namespace: deploy-rbac
+# ============================================================
+# Tasks 10-12: Helm namespaces
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: helm-ns
+# ============================================================
+# Tasks 13-14: Kustomize namespaces
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kustomize-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: overlay-ns
+# ============================================================
+# Task 15: CRD namespace
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: crd-ns
+# ============================================================
+# Task 17: storage-ns namespace
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: storage-ns
+# ============================================================
+# Task 19: log-ns namespace
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: log-ns
+# ============================================================
+# Task 20: CRD backups.storage.example.com + backup-ns + wrong CR in default
+# ============================================================
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: backups.storage.example.com
+spec:
+  group: storage.example.com
+  names:
+    kind: Backup
+    listKind: BackupList
+    plural: backups
+    singular: backup
+  scope: Namespaced
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              target:
+                type: string
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backup-ns
+---
+apiVersion: storage.example.com/v1
+kind: Backup
+metadata:
+  name: my-backup
+  namespace: default
+spec:
+  target: wrong-namespace
