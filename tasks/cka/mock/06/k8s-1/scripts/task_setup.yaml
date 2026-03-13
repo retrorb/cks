@@ -1,0 +1,454 @@
+# ============================================================
+# Task 4: crash-app in crash-ns — command /bin/wrong causes CrashLoopBackOff
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: crash-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: crash-app
+  namespace: crash-ns
+spec:
+  containers:
+  - name: crash-app
+    image: nginx:alpine
+    command: ["/bin/wrong"]
+# ============================================================
+# Task 5: bad-image-app in image-ns — broken image
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: image-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bad-image-app
+  namespace: image-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bad-image-app
+  template:
+    metadata:
+      labels:
+        app: bad-image-app
+    spec:
+      containers:
+      - name: bad-image-app
+        image: nginx:doesnotexist999
+        ports:
+        - containerPort: 80
+# ============================================================
+# Task 6: no-ep-svc in ep-ns — selector app=wrong-app
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ep-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: real-app
+  namespace: ep-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: real-app
+  template:
+    metadata:
+      labels:
+        app: real-app
+    spec:
+      containers:
+      - name: real-app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: no-ep-svc
+  namespace: ep-ns
+spec:
+  selector:
+    app: wrong-app
+  ports:
+  - port: 80
+    targetPort: 80
+# ============================================================
+# Task 7: dns-block — NetworkPolicy blocks all egress including DNS
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dns-block
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: no-dns-pod
+  namespace: dns-block
+  labels:
+    app: no-dns-pod
+spec:
+  containers:
+  - name: no-dns-pod
+    image: busybox
+    command: ["sleep", "3600"]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: block-egress
+  namespace: dns-block
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress: []
+# ============================================================
+# Task 8: broken-ingress in ingress-fix — port 9090 instead of 80
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-fix
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fix-backend
+  namespace: ingress-fix
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fix-backend
+  template:
+    metadata:
+      labels:
+        app: fix-backend
+    spec:
+      containers:
+      - name: fix-backend
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fix-svc
+  namespace: ingress-fix
+spec:
+  selector:
+    app: fix-backend
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: broken-ingress
+  namespace: ingress-fix
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: fix.k8s.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: fix-svc
+            port:
+              number: 9090
+# ============================================================
+# Task 9: taint-test in default — verify scheduling after taint removal
+# (taint broken=true:NoSchedule added by master.sh after setup)
+# ============================================================
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taint-test
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: taint-test
+  template:
+    metadata:
+      labels:
+        app: taint-test
+    spec:
+      containers:
+      - name: taint-test
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+# ============================================================
+# Task 10: oom-pod in resource-ns — memory limit 1Mi causes OOMKill
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: resource-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oom-pod
+  namespace: resource-ns
+spec:
+  containers:
+  - name: oom-pod
+    image: nginx:alpine
+    resources:
+      limits:
+        memory: "1Mi"
+      requests:
+        memory: "1Mi"
+# ============================================================
+# Task 11: config-ns — ConfigMap with wrong DB_HOST value
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: config-ns
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: config-ns
+data:
+  DB_HOST: "wrong-host"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: env-pod
+  namespace: config-ns
+spec:
+  containers:
+  - name: env-pod
+    image: nginx:alpine
+    env:
+    - name: DB_HOST
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: DB_HOST
+# ============================================================
+# Task 12: affinity-ns — pod with nodeSelector that matches no nodes
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: affinity-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: stuck-pod
+  namespace: affinity-ns
+spec:
+  nodeSelector:
+    disk: ssd
+  containers:
+  - name: stuck-pod
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+# ============================================================
+# Task 13: storage-ns — namespace + pre-created PV for fast-sc
+# (student creates StorageClass fast-sc, PVC fast-pvc, Pod storage-pod)
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: storage-ns
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: fast-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: fast-sc
+  hostPath:
+    path: /mnt/fast
+# ============================================================
+# Task 14: pvc-ns — stuck PVC waiting for missing StorageClass
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pvc-ns
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: stuck-pvc
+  namespace: pvc-ns
+spec:
+  storageClassName: missing-sc
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+# ============================================================
+# Task 15: pv-ns — namespace only (student creates PV + PVC)
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pv-ns
+# ============================================================
+# Task 16: retain-pv — reclaimPolicy Delete (student changes to Retain)
+# ============================================================
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: retain-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: manual
+  hostPath:
+    path: /mnt/retain
+# ============================================================
+# Task 17: rollout-ns — Deployment web-app with nginx:1.25
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rollout-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app
+  namespace: rollout-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web-app
+  template:
+    metadata:
+      labels:
+        app: web-app
+    spec:
+      containers:
+      - name: web-app
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+# ============================================================
+# Task 18: hpa-ns — Deployment scalable-app with CPU requests
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hpa-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scalable-app
+  namespace: hpa-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scalable-app
+  template:
+    metadata:
+      labels:
+        app: scalable-app
+    spec:
+      containers:
+      - name: scalable-app
+        image: nginx:alpine
+        resources:
+          requests:
+            cpu: "100m"
+          limits:
+            cpu: "200m"
+        ports:
+        - containerPort: 80
+# ============================================================
+# Task 19: schedule-ns — Deployment affinity-app (student adds nodeAffinity + limits + probe)
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: schedule-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: affinity-app
+  namespace: schedule-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: affinity-app
+  template:
+    metadata:
+      labels:
+        app: affinity-app
+    spec:
+      containers:
+      - name: affinity-app
+        image: nginx:alpine
+        ports:
+        - containerPort: 8080
+# ============================================================
+# Task 20: config-app-ns — namespace only (student creates CM + Secret + Pod)
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: config-app-ns
