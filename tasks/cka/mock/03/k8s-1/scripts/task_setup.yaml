@@ -1,0 +1,698 @@
+# ============================================================
+# Task 1: ClusterIP service — pre-create namespace + backend deployment
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: app-1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: app-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+# ============================================================
+# Task 3: LoadBalancer service — pre-create api-pod in default
+# ============================================================
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: api-pod
+  namespace: default
+  labels:
+    app: api-pod
+spec:
+  containers:
+  - name: api-pod
+    image: viktoruj/ping_pong:alpine
+    ports:
+    - containerPort: 8080
+# ============================================================
+# Task 4: Headless service — pre-create namespace + db StatefulSet
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: data
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db
+  namespace: data
+spec:
+  serviceName: "db"
+  replicas: 2
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+      - name: db
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+# ============================================================
+# Task 5: Fix broken service — broken selector points to wrong-label
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fix-me
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broken-app
+  namespace: fix-me
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: broken-app
+  template:
+    metadata:
+      labels:
+        app: broken-app
+    spec:
+      containers:
+      - name: broken-app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: broken-service
+  namespace: fix-me
+spec:
+  selector:
+    app: wrong-label
+  ports:
+  - port: 80
+    targetPort: 80
+# ============================================================
+# Task 7: Deny-all NetworkPolicy — target namespace + client namespace
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: policy-ns
+  labels:
+    team: policy
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: target-app
+  namespace: policy-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: target
+  template:
+    metadata:
+      labels:
+        app: target
+    spec:
+      containers:
+      - name: target
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: target-app
+  namespace: policy-ns
+spec:
+  selector:
+    app: target
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: external-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: external-client
+  namespace: external-ns
+spec:
+  containers:
+  - name: curl
+    image: curlimages/curl:latest
+    command: ["sleep", "3600"]
+# ============================================================
+# Task 8: Allow specific pod NetworkPolicy
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: app-net
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: server
+  namespace: app-net
+  labels:
+    app: server
+spec:
+  containers:
+  - name: server
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: server
+  namespace: app-net
+spec:
+  selector:
+    app: server
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: allowed-net
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: allowed-client
+  namespace: allowed-net
+  labels:
+    role: client
+spec:
+  containers:
+  - name: curl
+    image: curlimages/curl:latest
+    command: ["sleep", "3600"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: denied-client
+  namespace: allowed-net
+  labels:
+    role: other
+spec:
+  containers:
+  - name: curl
+    image: curlimages/curl:latest
+    command: ["sleep", "3600"]
+# ============================================================
+# Task 9: Cross-namespace NetworkPolicy
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: secure-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secure-server
+  namespace: secure-ns
+  labels:
+    app: secure-server
+spec:
+  containers:
+  - name: server
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: secure-server
+  namespace: secure-ns
+spec:
+  selector:
+    app: secure-server
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trusted-ns
+  labels:
+    team: trusted
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: trusted-client
+  namespace: trusted-ns
+spec:
+  containers:
+  - name: curl
+    image: curlimages/curl:latest
+    command: ["sleep", "3600"]
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: untrusted-ns
+  labels:
+    team: untrusted
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: untrusted-client
+  namespace: untrusted-ns
+spec:
+  containers:
+  - name: curl
+    image: curlimages/curl:latest
+    command: ["sleep", "3600"]
+# ============================================================
+# Task 10: Egress NetworkPolicy
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: restricted-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: restricted-pod
+  namespace: restricted-ns
+  labels:
+    app: restricted
+spec:
+  containers:
+  - name: curl
+    image: curlimages/curl:latest
+    command: ["sleep", "3600"]
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: allowed-target-ns
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: allowed-target
+  namespace: allowed-target-ns
+  labels:
+    app: allowed-target
+spec:
+  containers:
+  - name: server
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: allowed-target-svc
+  namespace: allowed-target-ns
+spec:
+  selector:
+    app: allowed-target
+  ports:
+  - port: 80
+    targetPort: 80
+# ============================================================
+# Tasks 11-12: Ingress — ingress-ns and multi-path-ns
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingress-app
+  namespace: ingress-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ingress-app
+  template:
+    metadata:
+      labels:
+        app: ingress-app
+    spec:
+      containers:
+      - name: ingress-app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-app-svc
+  namespace: ingress-ns
+spec:
+  selector:
+    app: ingress-app
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: multi-path-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-v1
+  namespace: multi-path-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-v1
+  template:
+    metadata:
+      labels:
+        app: service-v1
+    spec:
+      containers:
+      - name: service-v1
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-v1
+  namespace: multi-path-ns
+spec:
+  selector:
+    app: service-v1
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-v2
+  namespace: multi-path-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-v2
+  template:
+    metadata:
+      labels:
+        app: service-v2
+    spec:
+      containers:
+      - name: service-v2
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-v2
+  namespace: multi-path-ns
+spec:
+  selector:
+    app: service-v2
+  ports:
+  - port: 80
+    targetPort: 80
+# ============================================================
+# Task 13: Fix Ingress — broken-ingress points to wrong-svc
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fix-ingress-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fix-app
+  namespace: fix-ingress-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fix-app
+  template:
+    metadata:
+      labels:
+        app: fix-app
+    spec:
+      containers:
+      - name: fix-app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fix-app-svc
+  namespace: fix-ingress-ns
+spec:
+  selector:
+    app: fix-app
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: broken-ingress
+  namespace: fix-ingress-ns
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: wrong-svc
+            port:
+              number: 80
+# ============================================================
+# Task 14: Gateway API — namespace, app, service, GatewayClass
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gw-app
+  namespace: gateway-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gw-app
+  template:
+    metadata:
+      labels:
+        app: gw-app
+    spec:
+      containers:
+      - name: gw-app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gw-app-svc
+  namespace: gateway-ns
+spec:
+  selector:
+    app: gw-app
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: nginx
+spec:
+  controllerName: gateway.nginx.org/nginx-gateway-controller
+# ============================================================
+# Task 15: DNS resolution — dns-test namespace, pod, service
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dns-test
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dns-pod
+  namespace: dns-test
+  labels:
+    app: dns-pod
+spec:
+  containers:
+  - name: dns-pod
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dns-service
+  namespace: dns-test
+spec:
+  selector:
+    app: dns-pod
+  ports:
+  - port: 80
+    targetPort: 80
+# ============================================================
+# Task 17: API access from pod — api-access namespace + ClusterRole
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: api-access
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-reader
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+# ============================================================
+# Task 20: Troubleshoot — server-pod has correct label, client-pod has WRONG label
+# NetworkPolicy allows only role=correct-client, client-pod has role=wrong-client
+# ============================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trouble-final
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: server-pod
+  namespace: trouble-final
+  labels:
+    app: server-pod
+spec:
+  containers:
+  - name: server
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: server-svc
+  namespace: trouble-final
+spec:
+  selector:
+    app: server-pod
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client-pod
+  namespace: trouble-final
+  labels:
+    role: wrong-client
+spec:
+  containers:
+  - name: curl
+    image: curlimages/curl:latest
+    command: ["sleep", "3600"]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-client
+  namespace: trouble-final
+spec:
+  podSelector:
+    matchLabels:
+      app: server-pod
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          role: correct-client
