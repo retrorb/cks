@@ -1,0 +1,445 @@
+# Namespaces
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: helm-repo-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: alert-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: adapter-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hpa-adv-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: egress-ctl-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backend-ns
+  labels:
+    env: backend
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gw-multi-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: resource-debug-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: helm-compare-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cross-ns-pol
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: frontend-ns
+  labels:
+    purpose: frontend
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: admin-ns
+  labels:
+    purpose: admin
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: native-sidecar-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: limit-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: compound-scale-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gw-secure-ns
+---
+# CRD for task 2
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: alerts.monitoring.example.com
+spec:
+  group: monitoring.example.com
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              severity:
+                type: string
+              message:
+                type: string
+              recipient:
+                type: string
+  scope: Namespaced
+  names:
+    plural: alerts
+    singular: alert
+    kind: Alert
+    shortNames:
+    - alt
+---
+# Task 5: api-service deployment in hpa-adv-ns
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-service
+  namespace: hpa-adv-ns
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api-service
+  template:
+    metadata:
+      labels:
+        app: api-service
+    spec:
+      containers:
+      - name: api-service
+        image: nginx:alpine
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+        ports:
+        - containerPort: 80
+---
+# Task 6: egress-pod in egress-ctl-ns
+apiVersion: v1
+kind: Pod
+metadata:
+  name: egress-pod
+  namespace: egress-ctl-ns
+  labels:
+    app: egress-pod
+spec:
+  containers:
+  - name: egress-pod
+    image: busybox
+    command: ["sleep", "3600"]
+---
+# Task 6: backend pod in backend-ns
+apiVersion: v1
+kind: Pod
+metadata:
+  name: backend-app
+  namespace: backend-ns
+  labels:
+    app: backend-app
+spec:
+  containers:
+  - name: backend
+    image: nginx:alpine
+    ports:
+    - containerPort: 8080
+---
+# Task 7: Services in gw-multi-ns
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-app
+  namespace: gw-multi-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: users
+  template:
+    metadata:
+      labels:
+        app: users
+    spec:
+      containers:
+      - name: users
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-svc
+  namespace: gw-multi-ns
+spec:
+  selector:
+    app: users
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-app
+  namespace: gw-multi-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orders
+  template:
+    metadata:
+      labels:
+        app: orders
+    spec:
+      containers:
+      - name: orders
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-svc
+  namespace: gw-multi-ns
+spec:
+  selector:
+    app: orders
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: products-app
+  namespace: gw-multi-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: products
+  template:
+    metadata:
+      labels:
+        app: products
+    spec:
+      containers:
+      - name: products
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: products-svc
+  namespace: gw-multi-ns
+spec:
+  selector:
+    app: products
+  ports:
+  - port: 80
+    targetPort: 80
+---
+# Task 8: heavy-app in resource-debug-ns
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: heavy-app
+  namespace: resource-debug-ns
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: heavy-app
+  template:
+    metadata:
+      labels:
+        app: heavy-app
+    spec:
+      containers:
+      - name: heavy-app
+        image: nginx:alpine
+        resources:
+          requests:
+            cpu: "2"
+            memory: "4Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        ports:
+        - containerPort: 80
+---
+# Task 12: backend pod in cross-ns-pol
+apiVersion: v1
+kind: Pod
+metadata:
+  name: backend
+  namespace: cross-ns-pol
+  labels:
+    app: backend
+    tier: data
+spec:
+  containers:
+  - name: backend
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+---
+# Task 12: web pod in frontend-ns
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web
+  namespace: frontend-ns
+  labels:
+    tier: presentation
+spec:
+  containers:
+  - name: web
+    image: busybox
+    command: ["sleep", "3600"]
+---
+# Task 12: admin pod in admin-ns
+apiVersion: v1
+kind: Pod
+metadata:
+  name: admin
+  namespace: admin-ns
+  labels:
+    app: admin
+spec:
+  containers:
+  - name: admin
+    image: busybox
+    command: ["sleep", "3600"]
+---
+# Task 13: web-deploy in native-sidecar-ns
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-deploy
+  namespace: native-sidecar-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-deploy
+  template:
+    metadata:
+      labels:
+        app: web-deploy
+    spec:
+      containers:
+      - name: web
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+# Task 18: scaled-web in compound-scale-ns
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scaled-web
+  namespace: compound-scale-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: scaled-web
+  template:
+    metadata:
+      labels:
+        app: scaled-web
+    spec:
+      containers:
+      - name: scaled-web
+        image: nginx:alpine
+        resources:
+          requests:
+            cpu: "100m"
+          limits:
+            cpu: "200m"
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scaled-web-svc
+  namespace: compound-scale-ns
+spec:
+  selector:
+    app: scaled-web
+  ports:
+  - port: 80
+    targetPort: 80
+---
+# Task 19: secure-backend in gw-secure-ns
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-backend
+  namespace: gw-secure-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: secure-backend
+  template:
+    metadata:
+      labels:
+        app: secure-backend
+    spec:
+      containers:
+      - name: secure-backend
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: secure-backend-svc
+  namespace: gw-secure-ns
+spec:
+  selector:
+    app: secure-backend
+  ports:
+  - port: 80
+    targetPort: 80

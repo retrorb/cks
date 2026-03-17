@@ -1,0 +1,360 @@
+# CKA Mock 07 — Pre-created task resources
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: helm-install-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitor-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sidecar-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: netpol-deny-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hpa-behavior-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: quota-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: helm-tpl-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gw-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: netpol-and-ns
+  labels:
+    env: production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: init-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: helm-fix-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: compound-ns
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: final-gw-ns
+---
+# CRD for task 3
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: monitors.observability.example.com
+spec:
+  group: observability.example.com
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              interval:
+                type: string
+              target:
+                type: string
+  scope: Namespaced
+  names:
+    plural: monitors
+    singular: monitor
+    kind: Monitor
+    shortNames:
+    - mon
+---
+# Task 6: netpol-deny-ns pods
+apiVersion: v1
+kind: Pod
+metadata:
+  name: server-pod
+  namespace: netpol-deny-ns
+  labels:
+    app: server
+spec:
+  containers:
+  - name: server
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: server-svc
+  namespace: netpol-deny-ns
+spec:
+  selector:
+    app: server
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: api-client
+  namespace: netpol-deny-ns
+  labels:
+    role: api
+spec:
+  containers:
+  - name: client
+    image: busybox
+    command: ["sleep", "3600"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: random-pod
+  namespace: netpol-deny-ns
+  labels:
+    role: other
+spec:
+  containers:
+  - name: client
+    image: busybox
+    command: ["sleep", "3600"]
+---
+# Task 7: worker-app deployment in hpa-behavior-ns
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker-app
+  namespace: hpa-behavior-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: worker-app
+  template:
+    metadata:
+      labels:
+        app: worker-app
+    spec:
+      containers:
+      - name: worker-app
+        image: nginx:alpine
+        resources:
+          requests:
+            cpu: "100m"
+          limits:
+            cpu: "200m"
+        ports:
+        - containerPort: 80
+---
+# Task 8: ResourceQuota + heavy-pod in quota-ns
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-quota
+  namespace: quota-ns
+spec:
+  hard:
+    cpu: "500m"
+    memory: "1Gi"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: heavy-pod
+  namespace: quota-ns
+spec:
+  containers:
+  - name: heavy
+    image: nginx:alpine
+    resources:
+      requests:
+        cpu: "2"
+        memory: "2Gi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+---
+# Task 12: netpol-and-ns pods
+apiVersion: v1
+kind: Pod
+metadata:
+  name: db-pod
+  namespace: netpol-and-ns
+  labels:
+    role: db
+spec:
+  containers:
+  - name: db
+    image: nginx:alpine
+    ports:
+    - containerPort: 5432
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: api-pod
+  namespace: netpol-and-ns
+  labels:
+    role: api
+spec:
+  containers:
+  - name: api
+    image: busybox
+    command: ["sleep", "3600"]
+---
+# Task 13: init-ns resources
+apiVersion: v1
+kind: Pod
+metadata:
+  name: db-pod
+  namespace: init-ns
+  labels:
+    app: db
+spec:
+  containers:
+  - name: db
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-svc
+  namespace: init-ns
+spec:
+  selector:
+    app: db
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: main-deploy
+  namespace: init-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: main-deploy
+  template:
+    metadata:
+      labels:
+        app: main-deploy
+    spec:
+      containers:
+      - name: main
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+# Task 11: api-backend-svc in gw-ns
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-backend
+  namespace: gw-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-backend
+  template:
+    metadata:
+      labels:
+        app: api-backend
+    spec:
+      containers:
+      - name: api-backend
+        image: nginx:alpine
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-backend-svc
+  namespace: gw-ns
+spec:
+  selector:
+    app: api-backend
+  ports:
+  - port: 8080
+    targetPort: 8080
+---
+# Task 20: gw-backend in final-gw-ns
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gw-backend
+  namespace: final-gw-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gw-backend
+  template:
+    metadata:
+      labels:
+        app: gw-backend
+    spec:
+      containers:
+      - name: gw-backend
+        image: nginx:alpine
+        resources:
+          requests:
+            cpu: "100m"
+          limits:
+            cpu: "200m"
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gw-backend-svc
+  namespace: final-gw-ns
+spec:
+  selector:
+    app: gw-backend
+  ports:
+  - port: 80
+    targetPort: 80
